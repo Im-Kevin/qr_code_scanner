@@ -80,17 +80,17 @@
         [self pause];
     } else if ([call.method isEqualToString:@"resumeCamera"]) {
         [self resume];
-    } else if ([call.method isEqualToString:@"setTorchMode"]) {
+    } else if ([call.method isEqualToString:@"toggleFlash"]) {
         AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
         if (!device.hasTorch) {
             return;
         }
-        NSNumber *isOn = call.arguments;
+        
         [device lockForConfiguration:nil];
-        if (isOn.boolValue) {
-            [device setTorchMode:AVCaptureTorchModeOn];
-        } else {
+        if(device.torchMode != AVCaptureTorchModeOff){
             [device setTorchMode:AVCaptureTorchModeOff];
+        }else{
+            [device setTorchMode:AVCaptureTorchModeOn];
         }
         [device unlockForConfiguration];
     } else if([call.method isEqualToString:@"setDimensions"]){
@@ -107,6 +107,26 @@
 
 - (void)pause {
     [self.session stopRunning];
+}
+
+- (void)removeFromSuperview{
+    [super removeFromSuperview];
+    
+    [self.captureLayer removeFromSuperlayer];
+    
+    self.captureLayer.session = nil;
+    self.captureLayer = nil;
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    
+        for (AVCaptureInput *input in self.session.inputs) {
+            [self.session removeInput:input];
+        }
+        for (AVCaptureOutput *output in self.session.outputs) {
+            [self.session removeOutput:output];
+        }
+        [self.session stopRunning];
+    });
 }
 
 #pragma mark - AVCaptureMetadataOutputObjectsDelegate

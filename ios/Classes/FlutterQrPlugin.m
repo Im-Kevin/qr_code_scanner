@@ -1,5 +1,5 @@
 #import "FlutterQrPlugin.h"
-#import "qr_code_scanner/qr_code_scanner-Swift.h"
+#import "QRCaptureViewFactory.h"
 @implementation FlutterQrPlugin
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
     QRCaptureViewFactory *factory = [[QRCaptureViewFactory alloc] initWithRegistrar:registrar];

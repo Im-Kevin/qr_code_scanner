@@ -1,12 +1,40 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 
-void main() => runApp(MaterialApp(home: QRViewExample()));
+void main() => runApp(MaterialApp(home: App()));
 
 const flashOn = 'FLASH ON';
 const flashOff = 'FLASH OFF';
 const frontCamera = 'FRONT CAMERA';
 const backCamera = 'BACK CAMERA';
+
+class App extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() {
+    // TODO: implement createState
+    return AppState();
+  }
+}
+
+class AppState extends State<App> {
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('test'),
+      ),
+      body: MaterialButton(
+          child: Text('test'),
+          onPressed: () {
+            Navigator.push(context, CupertinoPageRoute(builder: (context) {
+              return QRViewExample();
+            }));
+          }),
+    );
+  }
+}
 
 class QRViewExample extends StatefulWidget {
   const QRViewExample({
