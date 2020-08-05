@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../qr_code_scanner.dart';
+
 typedef QRViewCreatedCallback = void Function(QRViewController);
 
 class QRView extends StatefulWidget {
@@ -17,13 +19,15 @@ class QRView extends StatefulWidget {
 
   final QRViewCreatedCallback onQRViewCreated;
 
-  final ShapeBorder overlay;
+  final QrScannerShapeBase overlay;
 
   @override
   State<StatefulWidget> createState() => _QRViewState();
 }
 
 class _QRViewState extends State<QRView> {
+  QRViewController _controller;
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -69,7 +73,8 @@ class _QRViewState extends State<QRView> {
     if (widget.onQRViewCreated == null) {
       return;
     }
-    widget.onQRViewCreated(QRViewController._(id, widget.key));
+    _controller = QRViewController._(id, widget.key, widget.overlay);
+    widget.onQRViewCreated(_controller);
   }
 }
 
@@ -95,12 +100,28 @@ class _CreationParams {
 }
 
 class QRViewController {
-  QRViewController._(int id, GlobalKey qrKey)
-      : _channel = MethodChannel('net.touchcapture.qr.flutterqr/qrview_$id') {
+  QRViewController._(
+    int id,
+    GlobalKey qrKey,
+    QrScannerShapeBase overlay,
+  ) : _channel = MethodChannel('net.touchcapture.qr.flutterqr/qrview_$id') {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final RenderBox renderBox = qrKey.currentContext.findRenderObject();
-      _channel.invokeMethod('setDimensions',
-          {'width': renderBox.size.width, 'height': renderBox.size.height});
+      var scanRect =
+          Rect.fromLTWH(0, 0, renderBox.size.width, renderBox.size.height);
+      if (overlay != null) {
+        scanRect = overlay.getScannerRect(renderBox.size);
+      }
+      _channel.invokeMethod('init', {
+        'width': renderBox.size.width,
+        'height': renderBox.size.height,
+        'scannerRect': {
+          'left': scanRect.left,
+          'top': scanRect.top,
+          'width': scanRect.width,
+          'height': scanRect.height
+        }
+      });
     }
     _channel.setMethodCallHandler(
       (call) async {
@@ -141,5 +162,16 @@ class QRViewController {
 
   void dispose() {
     _scanUpdateController.close();
+  }
+
+  void _setScanRect(Rect rect) {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      _channel.invokeMethod('setScanRect', {
+        'left': rect.left,
+        'top': rect.top,
+        'width': rect.width,
+        'height': rect.height
+      });
+    }
   }
 }
