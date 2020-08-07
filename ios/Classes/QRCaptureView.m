@@ -13,6 +13,7 @@
 @property(nonatomic, strong) AVCaptureSession *session;
 @property(nonatomic, strong) FlutterMethodChannel *channel;
 @property(nonatomic, weak) AVCaptureVideoPreviewLayer *captureLayer;
+@property(nonatomic, assign) BOOL torchMode;
 
 @end
 
@@ -26,6 +27,7 @@
 }
 
 - (instancetype)initWithFrame:(CGRect)frame viewIdentifier:(int64_t)viewId arguments:(id _Nullable)args registrar:(NSObject<FlutterPluginRegistrar>*)registrar {
+    self.torchMode = false;
     if (self = [super initWithFrame:frame]) {
         NSString *name = [NSString stringWithFormat:@"net.touchcapture.qr.flutterqr/qrview_%lld", viewId];
         FlutterMethodChannel *channel = [FlutterMethodChannel
@@ -51,14 +53,17 @@
     } else if ([call.method isEqualToString:@"toggleFlash"]) {
         AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
         if (!device.hasTorch) {
+            self.torchMode = !self.torchMode;
             return;
         }
         
         [device lockForConfiguration:nil];
-        if(device.torchMode != AVCaptureTorchModeOff){
+        if(self.torchMode){
             [device setTorchMode:AVCaptureTorchModeOff];
+            self.torchMode = false;
         }else{
             [device setTorchMode:AVCaptureTorchModeOn];
+            self.torchMode = true;
         }
         [device unlockForConfiguration];
     } else if([call.method isEqualToString:@"init"]){
@@ -110,6 +115,16 @@
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             output.rectOfInterest = [self.captureLayer metadataOutputRectOfInterestForRect:scannerRect];
             [self.session startRunning];
+
+            if (self.torchMode) {
+                AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+                if (!device.hasTorch) {
+                    return;
+                }
+                [device lockForConfiguration:nil];
+                [device setTorchMode:AVCaptureTorchModeOn];
+                [device unlockForConfiguration];
+            }
         });
         
     } else {
@@ -125,6 +140,15 @@
 
 - (void)resume {
     [self.session startRunning];
+    if (self.torchMode) {
+        AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+        if (!device.hasTorch) {
+            return;
+        }
+        [device lockForConfiguration:nil];
+        [device setTorchMode:AVCaptureTorchModeOn];
+        [device unlockForConfiguration];
+    }
 }
 
 - (void)pause {
