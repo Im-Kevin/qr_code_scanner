@@ -10,23 +10,21 @@ typedef QRViewCreatedCallback = void Function(QRViewController);
 
 class QRView extends StatefulWidget {
   const QRView({
-    @required Key key,
-    @required this.onQRViewCreated,
+    required Key key,
+    required this.onQRViewCreated,
     this.overlay,
-  })  : assert(key != null),
-        assert(onQRViewCreated != null),
-        super(key: key);
+  })  : super(key: key);
 
   final QRViewCreatedCallback onQRViewCreated;
 
-  final QrScannerShapeBase overlay;
+  final QrScannerShapeBase? overlay;
 
   @override
   State<StatefulWidget> createState() => _QRViewState();
 }
 
 class _QRViewState extends State<QRView> {
-  QRViewController _controller;
+  QRViewController? _controller;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +34,7 @@ class _QRViewState extends State<QRView> {
         if (widget.overlay != null)
           Container(
             decoration: ShapeDecoration(
-              shape: widget.overlay,
+              shape: widget.overlay!,
             ),
           )
         else
@@ -70,16 +68,13 @@ class _QRViewState extends State<QRView> {
   }
 
   void _onPlatformViewCreated(int id) {
-    if (widget.onQRViewCreated == null) {
-      return;
-    }
-    _controller = QRViewController._(id, widget.key, widget.overlay);
-    widget.onQRViewCreated(_controller);
+    _controller = QRViewController._(id, widget.key as GlobalKey, widget.overlay!);
+    widget.onQRViewCreated(_controller!);
   }
 }
 
 class _CreationParams {
-  _CreationParams({this.width, this.height});
+  _CreationParams({required this.width,required this.height});
 
   static _CreationParams fromWidget(double width, double height) {
     return _CreationParams(
@@ -106,15 +101,14 @@ class QRViewController {
     QrScannerShapeBase overlay,
   ) : _channel = MethodChannel('net.touchcapture.qr.flutterqr/qrview_$id') {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final RenderBox renderBox = qrKey.currentContext.findRenderObject();
       var scanRect =
-          Rect.fromLTWH(0, 0, renderBox.size.width, renderBox.size.height);
+          Rect.fromLTWH(0, 0, qrKey.currentContext!.size!.width, qrKey.currentContext!.size!.height);
       if (overlay != null) {
-        scanRect = overlay.getScannerRect(renderBox.size);
+        scanRect = overlay.getScannerRect(qrKey.currentContext!.size!);
       }
       _channel.invokeMethod('init', {
-        'width': renderBox.size.width,
-        'height': renderBox.size.height,
+        'width': qrKey.currentContext!.size!.width,
+        'height': qrKey.currentContext!.size!.height,
         'scannerRect': {
           'left': scanRect.left,
           'top': scanRect.top,
